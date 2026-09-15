@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>KYURYU SMP — Public Server Panel</title>
+  
+  <!-- Supabase JS Client (v2) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
+  <!-- Inter & JetBrains Mono Font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg-body: #0b0e14;
+      --bg-card: #121721;
+      --bg-card-hover: #18202c;
+      --bg-input: #0e121a;
+      
+      --border-color: rgba(255, 255, 255, 0.08);
+      --border-focus: rgba(88, 166, 255, 0.3);
+      
+      --text-main: #f0f6fc;
+      --text-muted: #8b949e;
+      --text-subtle: #484f58;
+
+      --accent-green: #3fb950;
+      --accent-green-glow: rgba(63, 185, 80, 0.25);
+      --accent-yellow: #d29922;
+      --accent-yellow-glow: rgba(210, 153, 34, 0.25);
+      --accent-red: #f85149;
+      --accent-red-glow: rgba(248, 81, 73, 0.25);
+      --accent-blue: #58a6ff;
+      --accent-blue-glow: rgba(88, 166, 255, 0.25);
+
+      --radius-lg: 16px;
+      --radius-md: 10px;
+      --radius-sm: 6px;
+      
+      --shadow-card: 0 8px 24px rgba(0, 0, 0, 0.3);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-body);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 28px 16px;
+      background-image: 
+        radial-gradient(circle at 50% 0%, rgba(88, 166, 255, 0.05) 0%, transparent 50%),
+        radial-gradient(circle at 10% 20%, rgba(46, 160, 67, 0.03) 0%, transparent 40%);
+    }
+
+    .container {
+      width: 100%;
+      max-width: 960px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* Header Styling */
+    header {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 28px 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+      box-shadow: var(--shadow-card);
+    }
+
+    header::before {
+      content: "";
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--accent-green), var(--accent-blue));
+    }
+
+    .brand-container {
+      text-align: center;
+    }
+
+    .title {
+      font-size: 2rem;
+      font-weight: 800;
+      letter-spacing: 2px;
+      color: #fff;
+      text-transform: uppercase;
+      background: linear-gradient(180deg, #ffffff 0%, #c9d1d9 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .subtitle {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      letter-spacing: 3px;
+      margin-top: 4px;
+      text-transform: uppercase;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--bg-body);
+      border: 1px solid var(--border-color);
+      padding: 6px 14px;
+      border-radius: 30px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      margin-top: 16px;
+      letter-spacing: 0.5px;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: var(--text-muted);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .status-dot.online {
+      background-color: var(--accent-green);
+      box-shadow: 0 0 10px var(--accent-green-glow);
+    }
+
+    .status-dot.offline {
+      background-color: var(--accent-red);
+      box-shadow: 0 0 10px var(--accent-red-glow);
+    }
+
+    /* Grid Layout */
+    .grid-main {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 20px;
+    }
+
+    @media (min-width: 768px) {
+      .grid-main {
+        grid-template-columns: 320px 1fr;
+      }
+    }
+
+    .sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      box-shadow: var(--shadow-card);
+      backdrop-filter: blur(10px);
+    }
+
+    .card-title {
+      font-size: 0.85rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .card-title .icon-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text-main);
+    }
+
+    /* TPS Card */
+    .tps-container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--bg-body);
+      padding: 14px 16px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-color);
+    }
+
+    .tps-number {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 2.2rem;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .tps-status-tag {
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 5px 10px;
+      border-radius: var(--radius-sm);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .tps-excellent { color: var(--accent-green); background: var(--accent-green-glow); border: 1px solid rgba(63, 185, 80, 0.3); }
+    .tps-good { color: var(--accent-blue); background: var(--accent-blue-glow); border: 1px solid rgba(88, 166, 255, 0.3); }
+    .tps-warning { color: var(--accent-yellow); background: var(--accent-yellow-glow); border: 1px solid rgba(210, 153, 34, 0.3); }
+    .tps-critical { color: var(--accent-red); background: var(--accent-red-glow); border: 1px solid rgba(248, 81, 73, 0.3); }
+
+    /* Player List */
+    .player-badge {
+      background: rgba(88, 166, 255, 0.1);
+      color: var(--accent-blue);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.78rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 12px;
+    }
+
+    .player-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 380px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 5px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: var(--border-color);
+      border-radius: 10px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--text-muted);
+    }
+
+    .player-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 8px 12px;
+      background: var(--bg-body);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      transition: all 0.2s ease;
+    }
+
+    .player-item:hover {
+      background: var(--bg-card-hover);
+      border-color: rgba(255, 255, 255, 0.15);
+      transform: translateX(2px);
+    }
+
+    .player-avatar {
+      width: 30px;
+      height: 30px;
+      border-radius: var(--radius-sm);
+      background-color: var(--border-color);
+      image-rendering: pixelated;
+    }
+
+    .player-name {
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    /* Public Chat */
+    .chat-card {
+      height: 100%;
+      min-height: 500px;
+    }
+
+    .chat-box {
+      flex: 1;
+      height: 440px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding-right: 6px;
+    }
+
+    .chat-msg {
+      display: flex;
+      gap: 12px;
+      background: var(--bg-body);
+      padding: 12px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-color);
+      transition: border-color 0.2s;
+    }
+
+    .chat-msg:hover {
+      border-color: rgba(255, 255, 255, 0.12);
+    }
+
+    .chat-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: var(--radius-sm);
+      flex-shrink: 0;
+      image-rendering: pixelated;
+    }
+
+    .chat-body {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      width: 100%;
+      word-break: break-word;
+    }
+
+    .chat-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .chat-author {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--accent-blue);
+    }
+
+    .chat-time {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--text-subtle);
+    }
+
+    .chat-text {
+      font-size: 0.88rem;
+      color: #d0d7de;
+      line-height: 1.45;
+    }
+
+    /* States & Utilities */
+    .empty-state {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      text-align: center;
+      padding: 30px 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .connection-banner {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--accent-yellow);
+      background: var(--accent-yellow-glow);
+      border: 1px solid rgba(210, 153, 34, 0.3);
+      padding: 10px 16px;
+      border-radius: var(--radius-md);
+      display: none;
+      text-align: center;
+    }
+
+    .pill-readonly {
+      font-size: 0.7rem;
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-muted);
+      padding: 2px 8px;
+      border-radius: 10px;
+      border: 1px solid var(--border-color);
+    }
+
+    footer {
+      text-align: center;
+      font-size: 0.78rem;
+      color: var(--text-subtle);
+      margin-top: 10px;
+      padding-bottom: 20px;
+      letter-spacing: 0.5px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <!-- Header -->
+    <header>
+      <div class="brand-container">
+        <div class="title">KYURYU SMP</div>
+        <div class="subtitle">Public Server Panel</div>
+      </div>
+      <div class="status-badge">
+        <div id="statusDot" class="status-dot"></div>
+        <span id="statusText">MEMUAT DATA...</span>
+      </div>
+    </header>
+
+    <!-- Connection Warning Banner -->
+    <div id="connWarning" class="connection-banner">
+      ⚠️ Mode Realtime Terputus — Beralih ke pembaruan berkala (Polling 5s).
+    </div>
+
+    <!-- Main Grid -->
+    <div class="grid-main">
+      <!-- Left Column Sidebar -->
+      <div class="sidebar">
+        <!-- TPS Card -->
+        <div class="card">
+          <div class="card-title">
+            <div class="icon-label">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+              <span>Server TPS</span>
+            </div>
+          </div>
+          <div class="tps-container">
+            <div id="tpsValue" class="tps-number">--.--</div>
+            <div id="tpsTag" class="tps-status-tag">--</div>
+          </div>
+        </div>
+
+        <!-- Players Card -->
+        <div class="card">
+          <div class="card-title">
+            <div class="icon-label">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+              <span>Players Online</span>
+            </div>
+            <span id="playerCount" class="player-badge">0</span>
+          </div>
+          <ul id="playerList" class="player-list">
+            <li class="empty-state">Memuat daftar player...</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Right Column: Chat Card -->
+      <div class="card chat-card">
+        <div class="card-title">
+          <div class="icon-label">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+            <span>Public Live Chat</span>
+          </div>
+          <span class="pill-readonly">Read-Only</span>
+        </div>
+        <div id="chatBox" class="chat-box">
+          <div class="empty-state">Memuat riwayat chat...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+      KYURYU SMP &copy; 2026 — Official Minecraft Server Panel
+    </footer>
+  </div>
+
+  <script>
+    // ==========================================
+    // KONFIGURASI SUPABASE
+    // ==========================================
+    const SUPABASE_URL = "https://yloejghtlqbaiawwxagr.supabase.co";
+    const SUPABASE_ANON_KEY = "sb_publishable_7UIwDtXSJ2UoGJCLAc9Sow_wcokz2rK";
+
+    // Inisialisasi Supabase Client
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // DOM Elements
+    const statusDot = document.getElementById('statusDot');
+    const statusText = document.getElementById('statusText');
+    const tpsValue = document.getElementById('tpsValue');
+    const tpsTag = document.getElementById('tpsTag');
+    const playerCount = document.getElementById('playerCount');
+    const playerList = document.getElementById('playerList');
+    const chatBox = document.getElementById('chatBox');
+    const connWarning = document.getElementById('connWarning');
+
+    let isRealtimeConnected = false;
+
+    // Helper sanitasi teks XSS
+    function sanitizeText(str) {
+      if (!str) return '';
+      return str.replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+    }
+
+    // Format Timestamp [HH:MM]
+    function formatTime(isoString) {
+      const date = isoString ? new Date(isoString) : new Date();
+      return date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', hour12: false });
+    }
+
+    // 1. FETCH & RENDER SERVER STATUS + TPS
+    async function fetchServerStatus() {
+      try {
+        const { data, error } = await supabaseClient
+          .from('server_status')
+          .select('*')
+          .eq('id', 1)
+          .single();
+
+        if (error || !data) {
+          renderServerStatus(false, 0);
+          return;
+        }
+
+        renderServerStatus(data.online, data.tps);
+      } catch (err) {
+        renderServerStatus(false, 0);
+      }
+    }
+
+    function renderServerStatus(isOnline, tps) {
+      if (isOnline) {
+        statusDot.className = "status-dot online";
+        statusText.textContent = "ONLINE";
+      } else {
+        statusDot.className = "status-dot offline";
+        statusText.textContent = "OFFLINE";
+      }
+
+      const numTps = parseFloat(tps) || 0;
+      tpsValue.textContent = numTps.toFixed(1);
+
+      // Render Badge TPS
+      if (numTps >= 18.0) {
+        tpsTag.textContent = "Excellent";
+        tpsTag.className = "tps-status-tag tps-excellent";
+      } else if (numTps >= 15.0) {
+        tpsTag.textContent = "Good";
+        tpsTag.className = "tps-status-tag tps-good";
+      } else if (numTps >= 10.0) {
+        tpsTag.textContent = "Warning";
+        tpsTag.className = "tps-status-tag tps-warning";
+      } else {
+        tpsTag.textContent = "Critical";
+        tpsTag.className = "tps-status-tag tps-critical";
+      }
+    }
+
+    // 2. FETCH & RENDER PLAYERS ONLINE
+    async function fetchOnlinePlayers() {
+      try {
+        const { data, error } = await supabaseClient
+          .from('online_players')
+          .select('player_name')
+          .eq('online', true)
+          .order('player_name', { ascending: true });
+
+        if (error) throw error;
+
+        renderPlayers(data || []);
+      } catch (err) {
+        playerList.innerHTML = `<li class="empty-state">Gagal mengambil data player</li>`;
+      }
+    }
+
+    function renderPlayers(players) {
+      playerCount.textContent = players.length;
+
+      if (players.length === 0) {
+        playerList.innerHTML = `<li class="empty-state">Tidak ada player online</li>`;
+        return;
+      }
+
+      playerList.innerHTML = players.map(p => {
+        const cleanName = sanitizeText(p.player_name);
+        return `
+          <li class="player-item">
+            <img class="player-avatar" 
+                 src="https://mc-heads.net/avatar/${cleanName}/64" 
+                 onerror="this.src='https://mc-heads.net/avatar/MNS/64'" 
+                 alt="${cleanName}" />
+            <span class="player-name">${cleanName}</span>
+          </li>
+        `;
+      }).join('');
+    }
+
+    // 3. FETCH & RENDER CHAT
+    async function fetchPublicChat() {
+      try {
+        const { data, error } = await supabaseClient
+          .from('public_chat')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(50);
+
+        if (error) throw error;
+
+        renderChat((data || []).reverse());
+      } catch (err) {
+        chatBox.innerHTML = `<div class="empty-state">Gagal memuat pesan</div>`;
+      }
+    }
+
+    function renderChat(messages) {
+      if (messages.length === 0) {
+        chatBox.innerHTML = `<div class="empty-state">Belum ada obrolan</div>`;
+        return;
+      }
+
+      chatBox.innerHTML = messages.map(msg => {
+        const cleanName = sanitizeText(msg.player_name);
+        const cleanMsg = sanitizeText(msg.message);
+        const timeStr = formatTime(msg.created_at);
+
+        return `
+          <div class="chat-msg">
+            <img class="chat-avatar" 
+                 src="https://mc-heads.net/avatar/${cleanName}/64" 
+                 onerror="this.src='https://mc-heads.net/avatar/MNS/64'" 
+                 alt="${cleanName}" />
+            <div class="chat-body">
+              <div class="chat-header">
+                <span class="chat-author">${cleanName}</span>
+                <span class="chat-time">${timeStr}</span>
+              </div>
+              <div class="chat-text">${cleanMsg}</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      // Smooth Auto Scroll Ke Bawah
+      chatBox.scrollTo({
+        top: chatBox.scrollHeight,
+        behavior: 'smooth'
+      });
+    }
+
+    // ==========================================
+    // REALTIME SUBSCRIPTIONS
+    // ==========================================
+    function setupRealtime() {
+      const channel = supabaseClient.channel('schema-db-changes')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'server_status' }, () => {
+          fetchServerStatus();
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'online_players' }, () => {
+          fetchOnlinePlayers();
+        })
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'public_chat' }, () => {
+          fetchPublicChat();
+        })
+        .subscribe((status) => {
+          if (status === 'SUBSCRIBED') {
+            isRealtimeConnected = true;
+            connWarning.style.display = 'none';
+          } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
+            isRealtimeConnected = false;
+            connWarning.style.display = 'block';
+          }
+        });
+    }
+
+    // INITIALIZATION
+    async function initApp() {
+      await Promise.all([
+        fetchServerStatus(),
+        fetchOnlinePlayers(),
+        fetchPublicChat()
+      ]);
+      setupRealtime();
+
+      // Fallback Polling (tiap 5 detik jika Realtime tidak tersambung)
+      setInterval(() => {
+        if (!isRealtimeConnected) {
+          fetchServerStatus();
+          fetchOnlinePlayers();
+          fetchPublicChat();
+        }
+      }, 5000);
+    }
+
+    window.addEventListener('DOMContentLoaded', initApp);
+  </script>
+</body>
+</html>
