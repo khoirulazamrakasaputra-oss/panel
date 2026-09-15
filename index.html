@@ -155,6 +155,7 @@
       display: grid;
       grid-template-columns: 1fr;
       gap: 20px;
+      align-items: start;
     }
 
     @media (min-width: 768px) {
@@ -327,15 +328,23 @@
       color: var(--text-main);
     }
 
-    /* Public Chat Responsif & Real-time */
+    /* Public Chat Responsif & Real-time (Fixed Size) */
     .chat-card {
-      height: 100%;
-      min-height: 500px;
+      height: 520px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .chat-wrapper {
+      position: relative;
+      flex: 1;
+      height: calc(100% - 40px);
+      display: flex;
+      flex-direction: column;
     }
 
     .chat-box {
       flex: 1;
-      height: 440px;
       overflow-y: auto;
       display: flex;
       flex-direction: column;
@@ -410,6 +419,32 @@
       line-height: 1.45;
     }
 
+    /* Tombol Floating Scroll To Bottom */
+    .btn-scroll-bottom {
+      position: absolute;
+      bottom: 12px;
+      right: 12px;
+      background: var(--accent-blue);
+      color: #000;
+      border: none;
+      padding: 8px 14px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: none;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 4px 12px rgba(88, 166, 255, 0.4);
+      transition: all 0.2s ease;
+      z-index: 10;
+    }
+
+    .btn-scroll-bottom:hover {
+      transform: translateY(-2px);
+      background: #79c0ff;
+    }
+
     /* Modal View All Player Overlay */
     .modal-overlay {
       position: fixed;
@@ -429,8 +464,8 @@
       border: 1px solid var(--border-color);
       border-radius: var(--radius-lg);
       width: 100%;
-      max-width: 440px;
-      max-height: 80vh;
+      max-width: 460px;
+      max-height: 85vh;
       display: flex;
       flex-direction: column;
       box-shadow: 0 16px 32px rgba(0,0,0,0.5);
@@ -441,6 +476,12 @@
       padding: 16px 20px;
       border-bottom: 1px solid var(--border-color);
       display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .modal-header-top {
+      display: flex;
       align-items: center;
       justify-content: space-between;
     }
@@ -448,6 +489,44 @@
     .modal-title {
       font-size: 0.95rem;
       font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .modal-controls {
+      display: flex;
+      gap: 8px;
+      width: 100%;
+    }
+
+    .modal-search {
+      flex: 1;
+      background: var(--bg-input);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      padding: 8px 12px;
+      color: var(--text-main);
+      font-size: 0.82rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .modal-search:focus {
+      border-color: var(--accent-blue);
+    }
+
+    .modal-select {
+      background: var(--bg-input);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      padding: 8px 10px;
+      color: var(--text-main);
+      font-size: 0.82rem;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .modal-select option {
+      background: var(--bg-card);
       color: var(--text-main);
     }
 
@@ -523,6 +602,9 @@
 
     /* Media Query Responsif Mobile Chat */
     @media (max-width: 480px) {
+      .chat-card {
+        height: 480px;
+      }
       .chat-msg {
         padding: 10px;
         gap: 8px;
@@ -536,6 +618,9 @@
       }
       .chat-text {
         font-size: 0.82rem;
+      }
+      .modal-controls {
+        flex-direction: column;
       }
     }
   </style>
@@ -607,8 +692,14 @@
           </div>
           <span class="pill-readonly">Read-Only</span>
         </div>
-        <div id="chatBox" class="chat-box">
-          <div class="empty-state">Memuat riwayat chat...</div>
+        <div class="chat-wrapper">
+          <div id="chatBox" class="chat-box" onscroll="handleChatScroll()">
+            <div class="empty-state">Memuat riwayat chat...</div>
+          </div>
+          <button id="btnScrollBottom" class="btn-scroll-bottom" onclick="scrollToBottom(true)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            Pesan Baru ↓
+          </button>
         </div>
       </div>
     </div>
@@ -617,8 +708,19 @@
     <div id="playerModal" class="modal-overlay" onclick="closePlayerModal(event)">
       <div class="modal-container" onclick="event.stopPropagation()">
         <div class="modal-header">
-          <div class="modal-title">Daftar Seluruh Player Online</div>
-          <button class="btn-close-modal" onclick="closePlayerModal()">&times;</button>
+          <div class="modal-header-top">
+            <div class="modal-title">Daftar Seluruh Player Online</div>
+            <button class="btn-close-modal" onclick="closePlayerModal()">&times;</button>
+          </div>
+          <div class="modal-controls">
+            <input type="text" id="searchPlayer" class="modal-search" placeholder="Cari nama player..." oninput="renderModalPlayers()">
+            <select id="sortPlayer" class="modal-select" onchange="renderModalPlayers()">
+              <option value="oldest">Duluan Login</option>
+              <option value="newest">Baru Login</option>
+              <option value="az">A - Z</option>
+              <option value="za">Z - A</option>
+            </select>
+          </div>
         </div>
         <div id="modalPlayerList" class="modal-body">
           <!-- Item player dimasukkan lewat JS -->
@@ -650,9 +752,12 @@
     const playerList = document.getElementById('playerList');
     const btnViewAll = document.getElementById('btnViewAll');
     const chatBox = document.getElementById('chatBox');
+    const btnScrollBottom = document.getElementById('btnScrollBottom');
     const connWarning = document.getElementById('connWarning');
     const playerModal = document.getElementById('playerModal');
     const modalPlayerList = document.getElementById('modalPlayerList');
+    const searchPlayerInput = document.getElementById('searchPlayer');
+    const sortPlayerSelect = document.getElementById('sortPlayer');
 
     let allPlayersData = [];
     let isRealtimeConnected = false;
@@ -720,19 +825,27 @@
       }
     }
 
-    // 2. FETCH & RENDER PLAYERS ONLINE (MODAL & VIEW ALL LOGIC)
+    // 2. FETCH & RENDER PLAYERS ONLINE
     async function fetchOnlinePlayers() {
       try {
         const { data, error } = await supabaseClient
           .from('online_players')
-          .select('player_name')
-          .eq('online', true)
-          .order('player_name', { ascending: true });
+          .select('*');
 
         if (error) throw error;
 
-        allPlayersData = data || [];
+        allPlayersData = (data || [])
+          .filter(p => p.online === true || p.online === 1 || p.online === 'true' || p.online === '1')
+          .map((p, index) => ({
+            ...p,
+            loginTime: p.joined_at || p.created_at || index
+          }));
+
         renderPlayers(allPlayersData);
+
+        if (playerModal.style.display === "flex") {
+          renderModalPlayers();
+        }
       } catch (err) {
         playerList.innerHTML = `<li class="empty-state">Gagal mengambil data player</li>`;
       }
@@ -741,7 +854,6 @@
     function renderPlayers(players) {
       playerCount.textContent = players.length;
 
-      // Munculkan tombol view all [ ] jika player > 3
       if (players.length > 3) {
         btnViewAll.style.display = "flex";
       } else {
@@ -753,7 +865,6 @@
         return;
       }
 
-      // Tampilkan maksimal 3 player saja di halaman utama
       const displayPlayers = players.slice(0, 3);
 
       playerList.innerHTML = displayPlayers.map(p => {
@@ -770,11 +881,34 @@
       }).join('');
     }
 
-    // Fungsi Buka & Tutup Modal Players
-    function openPlayerModal() {
-      if (allPlayersData.length === 0) return;
+    function renderModalPlayers() {
+      const keyword = searchPlayerInput.value.toLowerCase().trim();
+      const sortBy = sortPlayerSelect.value;
 
-      modalPlayerList.innerHTML = allPlayersData.map(p => {
+      let filtered = allPlayersData.filter(p => 
+        p.player_name && p.player_name.toLowerCase().includes(keyword)
+      );
+
+      filtered.sort((a, b) => {
+        if (sortBy === 'az') {
+          return a.player_name.localeCompare(b.player_name);
+        } else if (sortBy === 'za') {
+          return b.player_name.localeCompare(a.player_name);
+        } else if (sortBy === 'newest') {
+          if (typeof a.loginTime === 'number') return b.loginTime - a.loginTime;
+          return new Date(b.loginTime) - new Date(a.loginTime);
+        } else {
+          if (typeof a.loginTime === 'number') return a.loginTime - b.loginTime;
+          return new Date(a.loginTime) - new Date(b.loginTime);
+        }
+      });
+
+      if (filtered.length === 0) {
+        modalPlayerList.innerHTML = `<div class="empty-state">Player tidak ditemukan</div>`;
+        return;
+      }
+
+      modalPlayerList.innerHTML = filtered.map(p => {
         const cleanName = sanitizeText(p.player_name);
         return `
           <div class="player-item">
@@ -786,7 +920,12 @@
           </div>
         `;
       }).join('');
+    }
 
+    function openPlayerModal() {
+      searchPlayerInput.value = '';
+      sortPlayerSelect.value = 'oldest';
+      renderModalPlayers();
       playerModal.style.display = "flex";
     }
 
@@ -820,10 +959,9 @@
       }
 
       chatBox.innerHTML = messages.map(msg => createChatMsgHTML(msg)).join('');
-      scrollToBottom();
+      scrollToBottom(true);
     }
 
-    // Helper Pembuatan Tampilan Element Message Tunggal
     function createChatMsgHTML(msg) {
       const cleanName = sanitizeText(msg.player_name);
       const cleanMsg = sanitizeText(msg.message);
@@ -846,30 +984,46 @@
       `;
     }
 
-    // Sisipkan Pesan Baru Secara Instant Tanpa Query Ulang Database
     function appendSingleChatMessage(newMsgPayload) {
       const emptyState = chatBox.querySelector('.empty-state');
       if (emptyState) {
         chatBox.innerHTML = '';
       }
 
+      // Deteksi apakah posisi scroll berada di dekat paling bawah
+      const isAtBottom = chatBox.scrollHeight - chatBox.scrollTop - chatBox.clientHeight < 80;
+
       const tempDiv = document.createElement('div');
       tempDiv.innerHTML = createChatMsgHTML(newMsgPayload);
       const newElement = tempDiv.firstElementChild;
 
       chatBox.appendChild(newElement);
-      scrollToBottom();
+
+      if (isAtBottom) {
+        scrollToBottom(true);
+      } else {
+        // Tampilkan tombol pesan baru jika pengguna sedang scrolled up
+        btnScrollBottom.style.display = 'flex';
+      }
     }
 
-    function scrollToBottom() {
+    function scrollToBottom(smooth = true) {
       chatBox.scrollTo({
         top: chatBox.scrollHeight,
-        behavior: 'smooth'
+        behavior: smooth ? 'smooth' : 'auto'
       });
+      btnScrollBottom.style.display = 'none';
+    }
+
+    function handleChatScroll() {
+      const isAtBottom = chatBox.scrollHeight - chatBox.scrollTop - chatBox.clientHeight < 40;
+      if (isAtBottom) {
+        btnScrollBottom.style.display = 'none';
+      }
     }
 
     // ==========================================
-    // REALTIME SUBSCRIPTIONS (INSTANT CHAT UPDATE)
+    // REALTIME SUBSCRIPTIONS
     // ==========================================
     function setupRealtime() {
       supabaseClient.channel('schema-db-changes')
@@ -880,7 +1034,6 @@
           fetchOnlinePlayers();
         })
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'public_chat' }, (payload) => {
-          // Menyisipkan pesan baru secara instan
           if (payload.new) {
             appendSingleChatMessage(payload.new);
           }
@@ -905,7 +1058,6 @@
       ]);
       setupRealtime();
 
-      // Fallback Polling 5s
       setInterval(() => {
         if (!isRealtimeConnected) {
           fetchServerStatus();
